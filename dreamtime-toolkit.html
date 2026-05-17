@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dream Time — أدوات الذكاء الاصطناعي</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --gold:#D4AF37;--gold-l:#F5D76E;--gold-d:#8B6914;
+  --bg:#06090A;--panel:#0C1114;--panel2:#111820;
+  --border:rgba(212,175,55,.15);--border2:rgba(212,175,55,.3);
+  --cream:#F0E6D0;--muted:rgba(240,230,208,.4);
+  --t1:#3B82F6;--t2:#10B981;--t3:#F59E0B;
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);color:var(--cream);font-family:'Cairo',sans-serif;overflow-x:hidden;}
+
+/* ===== NOISE TEXTURE ===== */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");opacity:.4;pointer-events:none;z-index:0;}
+
+/* ===== HEADER ===== */
+.hdr{position:relative;z-index:1;text-align:center;padding:28px 16px 16px;}
+.hdr-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:10px;}
+.hdr-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--gold-d),var(--gold));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.hdr-brand{font-size:13px;letter-spacing:5px;color:var(--gold);font-weight:300;}
+.hdr h1{font-family:'Amiri',serif;font-size:clamp(22px,5vw,36px);background:linear-gradient(135deg,var(--gold-l),var(--gold),var(--gold-d));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;}
+.hdr p{font-size:11px;color:var(--muted);letter-spacing:3px;}
+
+/* ===== TABS ===== */
+.tabs{position:relative;z-index:1;display:flex;gap:0;padding:0 12px;margin-bottom:0;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:90px;padding:12px 8px;text-align:center;cursor:pointer;border-bottom:2px solid rgba(255,255,255,.06);font-size:12px;color:var(--muted);transition:all .25s;white-space:nowrap;position:relative;}
+.tab .tab-icon{font-size:18px;display:block;margin-bottom:3px;}
+.tab.active{color:var(--cream);}
+.tab.active[data-t="1"]{border-bottom-color:var(--t1);}
+.tab.active[data-t="2"]{border-bottom-color:var(--t2);}
+.tab.active[data-t="3"]{border-bottom-color:var(--t3);}
+
+/* ===== CONTENT ===== */
+.content{position:relative;z-index:1;padding:16px 12px 40px;max-width:700px;margin:0 auto;}
+.tool-panel{display:none;animation:fadeUp .3s ease;}
+.tool-panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== CARD ===== */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);opacity:.3;}
+
+/* ===== SECTION LABEL ===== */
+.slabel{font-size:11px;color:var(--gold);letter-spacing:3px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.slabel::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+
+/* ===== FIELDS ===== */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;}
+.field input,.field textarea,.field select{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:10px;padding:10px 13px;color:var(--cream);
+  font-family:'Cairo',sans-serif;font-size:13px;outline:none;
+  transition:border-color .2s,background .2s;direction:rtl;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--border2);background:rgba(255,255,255,.07);}
+.field textarea{resize:vertical;min-height:75px;line-height:1.6;}
+.field select option{background:#0C1114;}
+
+/* ===== CHIPS ===== */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;}
+.chip{padding:5px 11px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .2s;background:transparent;}
+.chip:hover,.chip.active{background:rgba(212,175,55,.12);border-color:var(--border2);color:var(--gold-l);}
+
+/* ===== ROW ===== */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:400px){.row{grid-template-columns:1fr;}}
+
+/* ===== GENERATE BTN ===== */
+.btn{width:100%;padding:14px;border-radius:12px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .25s;border:none;outline:none;}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+.btn-1{background:linear-gradient(135deg,#1E3A5F,#0F2040);border:1px solid rgba(59,130,246,.4);color:#93C5FD;}
+.btn-1:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(59,130,246,.2);}
+.btn-2{background:linear-gradient(135deg,#0F3D2A,#071C14);border:1px solid rgba(16,185,129,.4);color:#6EE7B7;}
+.btn-2:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(16,185,129,.2);}
+.btn-3{background:linear-gradient(135deg,#3D2A0F,#1C1407);border:1px solid rgba(245,158,11,.4);color:#FCD34D;}
+.btn-3:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(245,158,11,.2);}
+
+/* ===== LOADER ===== */
+.loader-wrap{display:none;text-align:center;padding:28px 0;}
+.loader-wrap.show{display:block;}
+.spinner{width:40px;height:40px;border:2px solid rgba(212,175,55,.15);border-top-color:var(--gold);border-radius:50%;margin:0 auto 12px;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-txt{font-size:12px;color:var(--muted);letter-spacing:2px;}
+.loader-txt::after{content:'';animation:dots 1.5s steps(4,end) infinite;}
+@keyframes dots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...'}}
+
+/* ===== RESULT BOX ===== */
+.result-box{display:none;margin-top:14px;}
+.result-box.show{display:block;animation:fadeUp .4s ease;}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.result-label{font-size:11px;letter-spacing:3px;}
+.result-label.c1{color:var(--t1);}
+.result-label.c2{color:var(--t2);}
+.result-label.c3{color:var(--t3);}
+.btn-copy{padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;transition:all .2s;font-family:'Cairo',sans-serif;border:1px solid var(--border2);background:rgba(212,175,55,.08);color:var(--gold-l);}
+.btn-copy:hover{background:rgba(212,175,55,.18);}
+.btn-copy.copied{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:#6EE7B7;}
+
+.result-content{
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  border-radius:12px;padding:16px;font-size:13px;line-height:1.9;
+  color:var(--cream);white-space:pre-wrap;direction:rtl;text-align:right;
+  max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+
+/* ===== PRICING CARDS ===== */
+.pricing-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:4px;}
+.price-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden;}
+.price-card.recommended{border-color:var(--gold);background:rgba(212,175,55,.05);}
+.price-card.recommended::before{content:'⭐ الأنسب';position:absolute;top:10px;left:12px;font-size:10px;color:var(--gold);letter-spacing:1px;}
+.price-tier{font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:4px;}
+.price-amount{font-family:'Amiri',serif;font-size:28px;color:var(--gold-l);font-weight:700;}
+.price-amount span{font-size:13px;color:var(--muted);}
+.price-desc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6;}
+.price-features{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
+.price-feat{font-size:11px;color:var(--cream);opacity:.7;padding-right:14px;position:relative;}
+.price-feat::before{content:'✦';position:absolute;right:0;color:var(--gold);font-size:9px;top:2px;}
+
+/* ===== POST PREVIEW ===== */
+.post-preview{background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-top:10px;}
+.post-header{padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.05);}
+.post-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold-d),var(--gold));display:flex;align-items:center;justify-content:center;font-size:12px;}
+.post-handle{font-size:12px;color:#fff;font-weight:600;}
+.post-body{padding:14px;font-size:13px;line-height:1.8;color:#fff;white-space:pre-wrap;direction:rtl;text-align:right;min-height:80px;}
+.post-footer{padding:8px 12px;border-top:1px solid rgba(255,255,255,.05);display:flex;gap:16px;}
+.post-action{font-size:18px;cursor:pointer;opacity:.7;}
+
+/* ===== ERROR ===== */
+.err-msg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#FCA5A5;margin-top:10px;display:none;}
+.err-msg.show{display:block;}
+
+/* ===== COUNTER ===== */
+.counter{font-size:10px;color:var(--muted);text-align:left;margin-top:3px;}
+
+/* ===== RANGE ===== */
+.range-wrap{display:flex;align-items:center;gap:10px;}
+.range-wrap input[type=range]{flex:1;accent-color:var(--gold);}
+.range-val{font-size:13px;color:var(--gold-l);min-width:60px;text-align:center;background:rgba(212,175,55,.08);border-radius:6px;padding:3px 8px;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo">
+    <div class="hdr-icon">⚡</div>
+    <span class="hdr-brand">DREAM TIME</span>
+  </div>
+  <h1>أدوات الذكاء الاصطناعي</h1>
+  <p>AI TOOLKIT ✦ 3 TOOLS</p>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-t="1" onclick="switchTab(1)">
+    <span class="tab-icon">🎨</span>بوست إنستغرام
+  </div>
+  <div class="tab" data-t="2" onclick="switchTab(2)">
+    <span class="tab-icon">🎬</span>سكريبت ريلز
+  </div>
+  <div class="tab" data-t="3" onclick="switchTab(3)">
+    <span class="tab-icon">💰</span>تسعير المنتج
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ===== TOOL 1: INSTAGRAM POST ===== -->
+  <div class="tool-panel active" id="tool1">
+    <div class="card">
+      <div class="slabel">موضوع البوست</div>
+
+      <div class="field">
+        <label>عن ماذا تريد الكتابة؟</label>
+        <textarea id="p1_topic" placeholder="مثال: كيف تربح من الإنترنت بدون رأس مال..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>نوع البوست</label>
+        <div class="chips" id="p1_type">
+          <div class="chip active" data-v="تحفيزي">🔥 تحفيزي</div>
+          <div class="chip" data-v="تعليمي">📚 تعليمي</div>
+          <div class="chip" data-v="قصة نجاح">🏆 قصة نجاح</div>
+          <div class="chip" data-v="نصائح">💡 نصائح</div>
+          <div class="chip" data-v="سؤال تفاعلي">❓ تفاعلي</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>الجمهور المستهدف</label>
+          <select id="p1_audience">
+            <option>رواد أعمال جزائريين</option>
+            <option>شباب عرب</option>
+            <option>مهتمون بالتسويق</option>
+            <option>مبتدئون في الإنترنت</option>
+            <option>أمهات وربات بيت</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>نبرة الكتابة</label>
+          <select id="p1_tone">
+            <option>حماسية وجريئة</option>
+            <option>ودية وعفوية</option>
+            <option>احترافية وهادئة</option>
+            <option>مباشرة وصريحة</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>الهاشتاقات</label>
+        <div class="chips" id="p1_hashtag">
+          <div class="chip active" data-v="5">5 هاشتاق</div>
+          <div class="chip" data-v="10">10 هاشتاق</div>
+          <div class="chip" data-v="15">15 هاشتاق</div>
+          <div class="chip" data-v="بدون">بدون</div>
+        </div>
+      </div>
+
+      <button class="btn btn-1" onclick="runTool(1)">🎨 ولّد البوست الآن</button>
+    </div>
+
+    <div class="loader-wrap" id="loader1">
+      <div class="spinner"></div>
+      <div class="loader-txt">يكتب Claude بوستك</div>
+    </div>
+
+    <div class="result-box" id="result1">
+      <div class="result-header">
+        <span class="result-label c1">✦ البوست الجاهز</span>
+        <button class="btn-copy" onclick="copyResult(1)">نسخ</button>
+      </div>
+      <!-- Instagram preview -->
+      <div class="post-preview">
+        <div class="post-header">
+          <div class="post-avatar">🌙</div>
+          <div class="post-handle">@eli_dream_time</div>
+        </div>
+        <div class="post-body" id="post_preview">سيظهر البوست هنا...</div>
+        <div class="post-footer">
+          <span class="post-action">🤍</span>
+          <span class="post-action">💬</span>
+          <span class="post-action">📤</span>
+        </div>
+      </div>
+      <div id="result1_text" style="display:none;"></div>
+      <div class="err-msg" id="err1"></div>
+    </div>
+  </div>
+
+  <!-- ===== TOOL 2: REELS SCRIPT ===== -->
+  <div class="tool-panel" id="tool2">
+    <div class="card">
+      <div class="slabel">سكريبت الريلز</div>
+
+      <div class="field">
+        <label>موضوع الريلز</label>
+        <textarea id="p2_topic" placeholder="مثال: كيف تبيع منتجاً رقمياً على إنستغرام في 24 ساعة..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>مدة الريلز</label>
+        <div class="chips" id="p2_duration">
+          <div class="chip active" data-v="15">⚡ 15 ثانية</div>
+          <div class="chip" data-v="30">🎬 30 ثانية</div>
+          <div class="chip" data-v="60">🎥 60 ثانية</div>
+          <div class="chip" data-v="90">📽 90 ثانية</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>أسلوب الفيديو</label>
+          <select id="p2_style">
+            <option>فيس كام (وجه ظاهر)</option>
+            <option>فويس أوفر (صوت فقط)</option>
+            <option>نص على الشاشة</option>
+            <option>بدون وجه (فيسلس)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>الهدف</label>
+          <select id="p2_goal">
+            <option>جذب متابعين</option>
+            <option>بيع منتج</option>
+            <option>بناء الثقة</option>
+            <option>توعية وتعليم</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>هوك البداية</label>
+        <div class="chips" id="p2_hook">
+          <div class="chip active" data-v="سؤال مثير">❓ سؤال مثير</div>
+          <div class="chip" data-v="إحصائية مفاجئة">📊 إحصائية</div>
+          <div class="chip" data-v="تحدي">🎯 تحدي</div>
+          <div class="chip" data-v="قصة شخصية">📖 قصة</div>
+        </div>
+      </div>
+
+      <button class="btn btn-2" onclick="runTool(2)">🎬 ولّد السكريبت الآن</button>
+    </div>
+
+    <div class="loader-wrap" id="loader2">
+      <div class="spinner" style="border-top-color:#10B981;"></div>
+      <div class="loader-txt">يكتب Claude سكريبتك</div>
+    </div>
+
+    <div class="result-box" id="result2">
+      <div class="result-header">
+        <span class="result-label c2">✦ السكريبت الجاهز</span>
+        <button class="btn-copy" onclick="copyResult(2)">نسخ</button>
+      </div>
+      <div class="result-content" id="result2_text" dir="rtl"></div>
+      <div class="err-msg" id="err2"></div>
+    </div>
+  </div>
+
+  <!-- ===== TOOL 3: PRICING ===== -->
+  <div class="tool-panel" id="tool3">
+    <div class="card">
+      <div class="slabel">تفاصيل المنتج</div>
+
+      <div class="field">
+        <label>اسم المنتج الرقمي</label>
+        <input type="text" id="p3_name" placeholder="مثال: كورس التسويق بالذكاء الاصطناعي">
+      </div>
+
+      <div class="field">
+        <label>وصف مختصر</label>
+        <textarea id="p3_desc" placeholder="ماذا يتعلم المشتري؟ ما هي القيمة التي يحصل عليها؟" style="min-height:60px;"></textarea>
+      </div>
+
+      <div class="field">
+        <label>نوع المنتج</label>
+        <div class="chips" id="p3_type">
+          <div class="chip active" data-v="كورس فيديو">🎥 كورس</div>
+          <div class="chip" data-v="كتاب إلكتروني">📗 إيبوك</div>
+          <div class="chip" data-v="قوالب جاهزة">🗂 قوالب</div>
+          <div class="chip" data-v="استشارة">🎯 استشارة</div>
+          <div class="chip" data-v="عضوية">♾ عضوية</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>الجمهور</label>
+          <select id="p3_audience">
+            <option>جزائريون (DZD)</option>
+            <option>عرب عموماً (USD)</option>
+            <option>مغاربة (MAD)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>مستوى المنتج</label>
+          <select id="p3_level">
+            <option>مبتدئ</option>
+            <option>متوسط</option>
+            <option>متقدم</option>
+            <option>شامل كل المستويات</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>المنافسة في السوق</label>
+        <div class="chips" id="p3_competition">
+          <div class="chip active" data-v="منخفضة">🟢 منخفضة</div>
+          <div class="chip" data-v="متوسطة">🟡 متوسطة</div>
+          <div class="chip" data-v="عالية">🔴 عالية</div>
+        </div>
+      </div>
+
+      <button class="btn btn-3" onclick="runTool(3)">💰 احسب الأسعار الآن</button>
+    </div>
+
+    <div class="loader-wrap" id="loader3">
+      <div class="spinner" style="border-top-color:#F59E0B;"></div>
+      <div class="loader-txt">يحلل Claude السوق</div>
+    </div>
+
+    <div class="result-box" id="result3">
+      <div class="result-header">
+        <span class="result-label c3">✦ استراتيجية التسعير</span>
+        <button class="btn-copy" onclick="copyResult(3)">نسخ</button>
+      </div>
+      <div class="pricing-grid" id="pricing_cards"></div>
+      <div class="result-content" id="result3_text" style="margin-top:12px;" dir="rtl"></div>
+      <div class="err-msg" id="err3"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== TAB SWITCHING =====
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab[data-t="${n}"]`).classList.add('active');
+  document.getElementById(`tool${n}`).classList.add('active');
+}
+
+// ===== SINGLE-SELECT CHIPS =====
+document.querySelectorAll('.chips').forEach(group=>{
+  group.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      group.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+function getChip(id){ return document.querySelector(`#${id} .chip.active`)?.dataset.v || ''; }
+
+// ===== API CALL =====
+async function callClaude(prompt, toolN){
+  const loaderEl = document.getElementById(`loader${toolN}`);
+  const resultEl = document.getElementById(`result${toolN}`);
+  const errEl    = document.getElementById(`err${toolN}`);
+  const btn      = document.querySelectorAll('.btn')[toolN-1];
+
+  btn.disabled = true;
+  loaderEl.classList.add('show');
+  resultEl.classList.remove('show');
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1500,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    if(!res.ok) throw new Error(`خطأ في الاتصال: ${res.status}`);
+    const data = await res.json();
+    const text = data.content.map(b=>b.text||'').join('').trim();
+    loaderEl.classList.remove('show');
+    return text;
+  } catch(e){
+    loaderEl.classList.remove('show');
+    errEl.textContent = `❌ ${e.message}`;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    return null;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== TOOL 1: INSTAGRAM =====
+async function runTool1(){
+  const topic    = document.getElementById('p1_topic').value.trim();
+  const type     = getChip('p1_type');
+  const audience = document.getElementById('p1_audience').value;
+  const tone     = document.getElementById('p1_tone').value;
+  const hashtags = getChip('p1_hashtag');
+  if(!topic){ alert('اكتب موضوع البوست أولاً'); return; }
+
+  const prompt = `أنت كاتب محتوى محترف لإنستغرام متخصص في ريادة الأعمال والتسويق الرقمي للجمهور العربي.
+
+اكتب بوست إنستغرام بالمواصفات التالية:
+- الموضوع: ${topic}
+- النوع: ${type}
+- الجمهور: ${audience}
+- النبرة: ${tone}
+- الهاشتاقات: ${hashtags === 'بدون' ? 'لا تضع هاشتاقات' : `أضف ${hashtags} هاشتاق مناسبة في الأسفل`}
+
+القواعد:
+1. ابدأ بـ Hook قوي يشد الانتباه في أول سطر (ممكن emoji)
+2. استخدم الدارجة الجزائرية أو العربية البسيطة حسب السياق
+3. اجعل الكلام مباشر ومؤثر
+4. CTA واضح في الآخر
+5. استخدم emojis بشكل ذكي
+6. اكتب البوست فقط بدون أي شرح أو مقدمة`;
+
+  const text = await callClaude(prompt, 1);
+  if(!text) return;
+
+  document.getElementById('post_preview').textContent = text;
+  document.getElementById('result1_text').textContent = text;
+  document.getElementById('result1').classList.add('show');
+}
+
+// ===== TOOL 2: REELS SCRIPT =====
+async function runTool2(){
+  const topic    = document.getElementById('p2_topic').value.trim();
+  const duration = getChip('p2_duration');
+  const style    = document.getElementById('p2_style').value;
+  const goal     = document.getElementById('p2_goal').value;
+  const hook     = getChip('p2_hook');
+  if(!topic){ alert('اكتب موضوع الريلز أولاً'); return; }
+
+  const prompt = `أنت سكريبت رايتر محترف متخصص في ريلز إنستغرام العربي.
+
+اكتب سكريبت ريلز كامل بالمواصفات التالية:
+- الموضوع: ${topic}
+- المدة: ${duration} ثانية
+- الأسلوب: ${style}
+- الهدف: ${goal}
+- نوع الهوك: ${hook}
+
+البنية المطلوبة:
+🎯 [HOOK - 0-3 ثواني]: جملة تشد الانتباه
+📢 [المحتوى]: النقاط الرئيسية مقسّمة بوضوح مع توقيت كل جزء
+💥 [CTA - آخر 3 ثواني]: دعوة واضحة للتصرف
+
+أضف:
+- تعليمات للكاميرا أو النص إذا لزم
+- إيقاع الكلام (سريع/متوسط/بطيء)
+- مقترح للموسيقى أو الصوت
+
+اكتب بالعربية البسيطة أو الدارجة. السكريبت فقط بدون شرح.`;
+
+  const text = await callClaude(prompt, 2);
+  if(!text) return;
+
+  document.getElementById('result2_text').textContent = text;
+  document.getElementById('result2').classList.add('show');
+}
+
+// ===== TOOL 3: PRICING =====
+async function runTool3(){
+  const name        = document.getElementById('p3_name').value.trim();
+  const desc        = document.getElementById('p3_desc').value.trim();
+  const type        = getChip('p3_type');
+  const audience    = document.getElementById('p3_audience').value;
+  const level       = document.getElementById('p3_level').value;
+  const competition = getChip('p3_competition');
+  if(!name){ alert('اكتب اسم المنتج أولاً'); return; }
+
+  const prompt = `أنت خبير تسعير منتجات رقمية عربية متخصص في السوق الجزائري والعربي.
+
+حلل وقترح استراتيجية تسعير كاملة لـ:
+- المنتج: ${name}
+- الوصف: ${desc||'غير محدد'}
+- النوع: ${type}
+- الجمهور: ${audience}
+- المستوى: ${level}
+- المنافسة: ${competition}
+
+أعطني 3 خيارات تسعير بالتنسيق التالي لكل واحد:
+TIER: [الاسم]
+PRICE: [السعر بالأرقام فقط]
+CURRENCY: [العملة]
+RECOMMENDED: [yes/no]
+DESC: [جملة واحدة تصف لماذا هذا السعر]
+FEATURES: [ميزة1 | ميزة2 | ميزة3]
+
+ثم بعدها اكتب:
+ADVICE:
+[3-4 نصائح تسويقية مختصرة لتحسين المبيعات]
+
+لا تكتب أي شيء آخر خارج هذا التنسيق.`;
+
+  const text = await callClaude(prompt, 3);
+  if(!text) return;
+
+  // Parse pricing tiers
+  const tiers = [];
+  const tierMatches = text.split(/(?=TIER:)/g).filter(s=>s.includes('TIER:'));
+
+  for(const t of tierMatches){
+    const get = (key) => { const m = t.match(new RegExp(`${key}:\\s*(.+)`)); return m?m[1].trim():''; };
+    tiers.push({
+      tier: get('TIER'), price: get('PRICE'), currency: get('CURRENCY'),
+      recommended: get('RECOMMENDED').toLowerCase()==='yes',
+      desc: get('DESC'),
+      features: get('FEATURES').split('|').map(f=>f.trim()).filter(Boolean)
+    });
+  }
+
+  // Render pricing cards
+  const grid = document.getElementById('pricing_cards');
+  grid.innerHTML = tiers.map(t=>`
+    <div class="price-card ${t.recommended?'recommended':''}">
+      <div class="price-tier">${t.tier}</div>
+      <div class="price-amount">${Number(t.price).toLocaleString('ar-DZ')} <span>${t.currency}</span></div>
+      <div class="price-desc">${t.desc}</div>
+      <div class="price-features">
+        ${t.features.map(f=>`<div class="price-feat">${f}</div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // Advice section
+  const adviceMatch = text.match(/ADVICE:\s*([\s\S]+)/);
+  if(adviceMatch){
+    document.getElementById('result3_text').textContent = '💡 نصائح تسويقية:\n' + adviceMatch[1].trim();
+    document.getElementById('result3_text').style.display = 'block';
+  }
+
+  document.getElementById('result3').classList.add('show');
+}
+
+// ===== ROUTER =====
+function runTool(n){
+  if(n===1) runTool1();
+  else if(n===2) runTool2();
+  else if(n===3) runTool3();
+}
+
+// ===== COPY =====
+function copyResult(n){
+  let text = '';
+  if(n===1) text = document.getElementById('result1_text').textContent;
+  else if(n===2) text = document.getElementById('result2_text').textContent;
+  else if(n===3){
+    const cards = document.querySelectorAll('.price-card');
+    cards.forEach(c=>{ text += c.textContent.trim().replace(/\s+/g,' ') + '\n\n'; });
+    text += document.getElementById('result3_text').textContent;
+  }
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelectorAll('.btn-copy')[n-1];
+    btn.textContent = '✓ تم النسخ';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='نسخ'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
